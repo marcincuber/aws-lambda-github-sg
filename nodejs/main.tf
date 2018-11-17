@@ -61,7 +61,7 @@ resource "aws_lambda_function" "lambda" {
   function_name    = "github-lambda-${var.environment}"
   role             = "${aws_iam_role.lambda_role.arn}"
 
-  handler          = "exports.run"
+  handler          = "index.run"
   source_code_hash = "${base64sha256(file("github-lambda.zip"))}"
 
   runtime          = "nodejs8.10"

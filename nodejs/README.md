@@ -47,7 +47,7 @@ resource "aws_cloudwatch_event_rule" "event_rule" {
 In case you change the code and the name of the handler, make sure to edit the following:
 
 ```tf
-handler = "exports.run"
+handler = "index.run"
 ```
 
 * Set AWS credentials
@@ -56,5 +56,13 @@ handler = "exports.run"
 * Deploy terraform `terraform apply -auto-approve`
 
 Note that terraform doesn't have remote backend config. It is important to setup one so please see [terraform backend docs](https://www.terraform.io/docs/backends/types/s3.html)
+
+### Testing lambda locally
+
+Export AWS credentials: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` then run:
+
+```bash
+docker run --rm -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v "$PWD":/var/task lambci/lambda:nodejs8.10 index.run
+```
 
 Credit to [Himesh](https://github.com/himeshladva) for help.

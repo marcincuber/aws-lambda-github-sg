@@ -58,3 +58,11 @@ So with that any security group with tag named `SourceList` and value `github` w
 * Deploy terraform `terraform apply -auto-approve`
 
 Note that terraform doesn't have remote backend config. It is important to setup one so please see [terraform backend docs](https://www.terraform.io/docs/backends/types/s3.html)
+
+### Testing lambda locally
+
+Export AWS credentials: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` then run:
+
+```bash
+docker run --rm -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v "$PWD":/var/task lambci/lambda:python3.6 github.lambda_handler
+```

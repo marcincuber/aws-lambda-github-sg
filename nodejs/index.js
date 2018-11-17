@@ -16,7 +16,7 @@ const securitygroups = [{
     to: 80
   },
   tags: [{
-    key: "SecurityGroupName",
+    key: "SourceList",
     value: "github"
   }]
 }, {
@@ -25,7 +25,7 @@ const securitygroups = [{
     to: 443
   },
   tags: [{
-    key: "SecurityGroupName",
+    key: "SourceList",
     value: "github"
   }]
 }]

@@ -38,6 +38,20 @@ environment {
 }
 ```
 
+Function is assumed to be used with multiple AWS accounts. For that reason we have `config.json` which contains information related to the account and IAM role which will be assumed. If you only running it in a single account, terraform templates are creating it for you as well. Resource from `main.tf`.
+
+```tf
+resource "aws_iam_role" "cloudeng_assume_role"
+```
+
+Policy attached to the above role can be found in the following resource:
+
+```tf
+resource "aws_iam_role_policy" "cloudeng_assume_role_policy"
+```
+
+After deploying your terraform templates, make sure to update config.json with valid assume_role arn.
+
 Cloudwatch event trigger is also set up to trigger the lambda. Currently it is setup to be triggered from monday to thursday at 10am. Following block can be modified if you need a different cron:
 
 ```tf
@@ -53,7 +67,7 @@ So with that any security group with tag named `SourceList` and value `github` w
 ### Deploying lambda
 
 * Set AWS credentials
-* Zip lambda script `zip github-lambda.zip github.py`
+* Zip lambda script `zip github-lambda.zip github.py config.json`
 * Initialise terraform `terraform init`
 * Deploy terraform `terraform apply -auto-approve`
 

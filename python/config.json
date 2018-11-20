@@ -1,0 +1,16 @@
+{
+	"Accounts": [
+		{
+	  		"account_id": "0000000000000",
+	    	"account_alias": "aws-fake-name",
+	    	"assume_role_arn": "arn:aws:iam::0000000000000:role/fake-name",
+	    	"assume_role_name": "fake-name"
+	  	},
+		{
+	  		"account_id": "your_account_id",
+	    	"account_alias": "aws-fake-name-1",
+	    	"assume_role_arn": "arn:aws:iam::0000000000000:role/fake-name-1",
+	    	"assume_role_name": "github-lambda-iam-role-test"
+	  	}
+	]
+}

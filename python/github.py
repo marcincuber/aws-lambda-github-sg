@@ -7,22 +7,24 @@ def lambda_handler(event, context):
     '''
     Main Lambda Handler
     '''
+    # Environment variables
     aws_region = os.environ["AWS_REGION"]
     sg_tag_name = os.environ["sg_tag_name"]
     sg_tag_value = os.environ["sg_tag_value"]
     api_github_endpoint = os.environ["api_github_endpoint"]
 
+    # Security group filters
     sg_filters = {
         "Name": f"tag:{sg_tag_name}",
         "Values": [f"{sg_tag_value}"]
     }
+    # Security group ports to whitelist ips
     sg_ports = {
         "FromPort": [80, 443],
         "ToPort": [80, 443]
     }
 
-    client = boto3.client("ec2", region_name=aws_region)
-
+    # Get github ips
     try: 
         github_response = requests.get(f"{api_github_endpoint}").json()
         list_of_ips = github_ips(github_response)
@@ -31,28 +33,65 @@ def lambda_handler(event, context):
     except Exception as error:
         raise Exception(error)
 
-    sg_ids_list = []
+    # Read AWS accounts configs
     try:
-        sg_ids_list = get_sg_ids_by_tag(sg_filters, client)
+        json_accounts_config = json.loads(open("config.json").read())
     except Exception as error:
         raise Exception(error)
 
-    for sg_id in sg_ids_list:
+    # Update sg in each account
+    for account in json_accounts_config["Accounts"]:
+        
+        assume_role_arn=account["assume_role_arn"]
         try:
-            update_sg(list_of_ips, sg_id, sg_ports, client)
+            client = assume_role(assume_role_arn, "ec2")
+            print(f"Succesfully assumed role: {assume_role_arn}.")
+        except Exception as error:
+            print(f"Couldn't assume role: {assume_role_arn}.")
+            print(error)
+            continue
+
+        try:
+            sg_ids_list = get_sg_ids_by_tag(sg_filters, client)
         except Exception as error:
             raise Exception(error)
 
-    return ("Security groups succesfully updated!")
+        for sg_id in sg_ids_list:
+            try:
+                update_sg(list_of_ips, sg_id, sg_ports, client)
+            except Exception as error:
+                raise Exception(error)
+
+        print("")
+
+    return ("Finished updating security groups!")
+
+def assume_role(role_arn, client_type):
+    sts_client = boto3.client("sts")
+
+    assumedRoleObject = sts_client.assume_role(
+        DurationSeconds=3600,
+        RoleArn=role_arn,
+        RoleSessionName="AssumeRoleSessionName"
+    )
+
+    credentials = assumedRoleObject["Credentials"]
+
+    client = boto3.client(
+        client_type,
+        aws_access_key_id = credentials["AccessKeyId"],
+        aws_secret_access_key = credentials["SecretAccessKey"],
+        aws_session_token = credentials["SessionToken"]
+    )
+
+    return client
 
 def github_ips(json_data):
     ips = []
 
     for iplist in json_data:
-        if (iplist == "git" or iplist == "hooks" or 
-            iplist == "pages" or iplist == "importer"):
-            for ip in json_data[iplist]:
-                ips.append(check_cidr_validity(ip))
+        if isinstance(json_data[iplist], list):
+            ips+=json_data[iplist]
 
     return set(ips)
 

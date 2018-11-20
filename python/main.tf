@@ -1,6 +1,10 @@
 provider "aws" {
   region = "${var.region}"
+  shared_credentials_file = "~/.aws/credentials"
+  profile                 = "cloud-eng"
 }
+
+data "aws_caller_identity" "current" {}
 
 resource "aws_iam_role" "lambda_role" {
   name = "github-lambda-iam-role-${var.environment}"
@@ -22,18 +26,29 @@ resource "aws_iam_role" "lambda_role" {
 EOF
 }
 
-data "aws_iam_policy" "CloudWatchLogsFullAccess" {
-  arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+########## Assume role
+resource "aws_iam_role" "cloudeng_assume_role" {
+  name = "cloudeng-github-lambda-assume-role-${var.environment}"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "AWS": ["${aws_iam_role.lambda_role.arn}"]
+      },
+      "Effect": "Allow"
+    }
+  ]
+}
+EOF
 }
 
-resource "aws_iam_role_policy_attachment" "cw-full-role-policy-attach" {
-  role = "${aws_iam_role.lambda_role.name}"
-  policy_arn = "${data.aws_iam_policy.CloudWatchLogsFullAccess.arn}"
-}
-
-resource "aws_iam_role_policy" "policy" {
-  name = "github-lambda-iam-role-policy-${var.environment}"
-  role = "${aws_iam_role.lambda_role.id}"
+resource "aws_iam_role_policy" "cloudeng_assume_role_policy" {
+  name = "cloudeng-assume-role-policy-${var.environment}"
+  role = "${aws_iam_role.cloudeng_assume_role.id}"
 
   policy = <<EOF
 {
@@ -53,6 +68,16 @@ resource "aws_iam_role_policy" "policy" {
   ]
 }
 EOF
+}
+
+##############
+data "aws_iam_policy" "CloudWatchLogsFullAccess" {
+  arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "cw-full-role-policy-attach" {
+  role = "${aws_iam_role.lambda_role.name}"
+  policy_arn = "${data.aws_iam_policy.CloudWatchLogsFullAccess.arn}"
 }
 
 resource "aws_lambda_function" "lambda" {
